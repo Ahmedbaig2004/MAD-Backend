@@ -8,31 +8,31 @@ const BuildSchema = new Schema({
   },
   processor: {
     type: Schema.Types.ObjectId,
-    ref: 'Processor'
+    ref: 'processors'
   },
   gpu: {
     type: Schema.Types.ObjectId,
-    ref: 'Gpu'
+    ref: 'gpu'
   },
   motherboard: {
     type: Schema.Types.ObjectId,
-    ref: 'Motherboard'
+    ref: 'motherboard'
   },
   ram: {
     type: Schema.Types.ObjectId,
-    ref: 'Ram'
+    ref: 'ram'
   },
   ssd: {
     type: Schema.Types.ObjectId,
-    ref: 'SSD'
+    ref: 'ssd'
   },
   case: {
     type: Schema.Types.ObjectId,
-    ref: 'Case'
+    ref: 'case'
   },
   psu: {
     type: Schema.Types.ObjectId,
-    ref: 'PSU'
+    ref: 'psu'
   },
   totalPrice: {
     type: Number,

@@ -1,5 +1,14 @@
 const express = require('express');
 const Build = require('../models/Build');
+// Update all imports to use consistent casing
+const Processor = require('../models/Processor');  // Make sure it matches actual filename
+const Gpu = require('../models/gpu');  // Keep lowercase if that's the actual filename
+const Motherboard = require('../models/Motherboard');
+const Ram = require('../models/ram');
+const Ssd = require('../models/SSD');  // Changed from SSD to Ssd for consistency
+const Case = require('../models/Case');
+const Psu = require('../models/PSU');
+
 const router = express.Router();
 
 // Save a build
@@ -7,51 +16,89 @@ router.post('/savebuild', async (req, res) => {
     try {
         const { name, processor, gpu, motherboard, ram, ssd, case: pcCase, psu, totalPrice } = req.body;
 
-        const build = new Build({
-            name,
-            processor,
-            gpu,
-            motherboard,
-            ram,
-            ssd,
-            case: pcCase,
-            psu,
-            totalPrice
-        });
+        // Better validation and logging
+        console.log('Received build data:', req.body);
 
+        if (!name) {
+            return res.status(400).json({ error: "Build name is required" });
+        }
+
+        if (typeof totalPrice !== 'number') {
+            return res.status(400).json({ error: "Total price must be a number" });
+        }
+
+        // Create the build object with validated fields
+        const buildData = {
+            name,
+            totalPrice
+        };
+
+        // Only add component references if they exist and are valid
+        if (processor && typeof processor === 'string') buildData.processor = processor;
+        if (gpu && typeof gpu === 'string') buildData.gpu = gpu;
+        if (motherboard && typeof motherboard === 'string') buildData.motherboard = motherboard;
+        if (ram && typeof ram === 'string') buildData.ram = ram;
+        if (ssd && typeof ssd === 'string') buildData.ssd = ssd;
+        if (pcCase && typeof pcCase === 'string') buildData.case = pcCase;
+        if (psu && typeof psu === 'string') buildData.psu = psu;
+
+        console.log('Creating build with:', buildData);
+        const build = new Build(buildData);
         const savedBuild = await build.save();
         
+        // Return the saved build immediately without populating
         res.json(savedBuild);
     } catch (error) {
-        console.error(error.message);
-        res.status(500).send("Internal Server error occurred");
+        console.error("Error saving build:", error);
+        
+        // Return a more specific error message if possible
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ error: "Validation error", details: error.message });
+        }
+        
+        if (error.name === 'CastError') {
+            return res.status(400).json({ error: "Invalid ID format", details: error.message });
+        }
+        
+        res.status(500).json({ error: "Internal server error", message: error.message });
     }
 });
 
 // Get all builds
+// Get all builds
 router.get('/getbuilds', async (req, res) => {
     try {
-        const builds = await Build.find()
-            .populate('processor', 'CPU_name Image Price')
-            .populate('gpu', 'GPU_name Image Price')
-            .populate('motherboard', 'MOBO_name Image Price')
-            .populate('ram', 'RAM_name Image Price')
-            .populate('ssd', 'SSD_name Image Price')
-            .populate('case', 'CASE_name Image Price')
-            .populate('psu', 'PSU_name Image Price')
-            .sort({ date: -1 });
+        // Get all builds with proper sorting
+        let builds = await Build.find().sort({ date: -1 });
+        
+        // Populate with proper collection references
+        try {
+            builds = await Build.populate(builds, [
+                { path: 'processor' },
+                { path: 'gpu' },
+                { path: 'motherboard' },
+                { path: 'ram' },
+                { path: 'ssd' },
+                { path: 'case' },
+                { path: 'psu' }
+            ]);
+        } catch (populateError) {
+            console.error("Error populating builds:", populateError);
+            // Continue with unpopulated builds
+        }
         
         res.json(builds);
     } catch (error) {
-        console.error(error.message);
-        res.status(500).send("Internal Server error occurred");
+        console.error("Critical error in getbuilds:", error);
+        res.status(500).json({ error: "Internal Server error occurred" });
     }
 });
 
 // Get a specific build by ID
 router.get('/getbuild/:id', async (req, res) => {
     try {
-        const build = await Build.findById(req.params.id)
+        // Fetch the build with all component data in one query
+        let build = await Build.findById(req.params.id)
             .populate('processor')
             .populate('gpu')
             .populate('motherboard')
@@ -66,25 +113,9 @@ router.get('/getbuild/:id', async (req, res) => {
         
         res.json(build);
     } catch (error) {
-        console.error(error.message);
-        res.status(500).send("Internal Server error occurred");
+        console.error("Error in getbuild:", error);
+        res.status(500).json({ error: "Internal Server error occurred" });
     }
 });
 
-// Delete a build
-router.delete('/deletebuild/:id', async (req, res) => {
-    try {
-        const build = await Build.findByIdAndDelete(req.params.id);
-        
-        if (!build) {
-            return res.status(404).json({ message: "Build not found" });
-        }
-        
-        res.json({ message: "Build deleted successfully" });
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).send("Internal Server error occurred");
-    }
-});
-
-module.exports = router; 
+module.exports = router;

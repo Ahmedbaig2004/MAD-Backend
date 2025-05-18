@@ -1,5 +1,5 @@
 const express = require('express')
-const Processor = require('../models/processor')
+const Processor = require('../models/Processor')  // Update to match case of actual file
 const router = express.Router()
 
 router.post('/getprocessors/:page', async (req, res) => {
